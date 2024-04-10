@@ -52,13 +52,15 @@ float mlx90640_To[768];
 uint8_t imagebuf[120*160];
 uint16_t To16_mlx90640[768];
 
+float Temp_dis[768];
+float vdd;
 float T_a;
 float emissivity=0.95;
 paramsMLX90640 mlx_90640;
 
-
-
-
+uint16_t lcdbuf[100];
+uint16_t  max_pox,min_pox;
+uint16_t Max,Min;
 
 void mlx_90640_init(void)
 {
@@ -93,9 +95,9 @@ int status;
 //{
     status= MLX90640_GetFrameData(0x33, mlx90640_frame);
 
-    float vdd = MLX90640_GetVdd(mlx90640_frame, &mlx_90640);
+   vdd = MLX90640_GetVdd(mlx90640_frame, &mlx_90640);
         T_a = MLX90640_GetTa(mlx90640_frame, &mlx_90640);
-        printf("vdd:  %.2f Tr: %.2f  Status:%d\r\n",vdd,T_a-8,status);
+//        printf("vdd:  %.2f Tr: %.2f  Status:%d\r\n",vdd,T_a-8,status);
 
 
         MLX90640_CalculateTo(mlx90640_frame, &mlx_90640, emissivity, T_a-8.0, mlx90640_To);
@@ -115,32 +117,57 @@ int status;
 //         printf("\r\n");
 
 //    }
-
     }
-
 }
-
+void temp_data_sort(float *frameData,float *result)//温度数据镜像
+{
+    uint8_t i,j;
+    uint16_t k=0;
+    for(j=0;j<32;j++)
+    {
+        for(i=0;i<24;i++)
+        {
+            result[k] = frameData[(i*32)+j];
+            k++;
+        }
+    }
+}
 void Disp_TempPic(void)
 {
+//    lcd_clear(BLACK);
     uint16_t x,y,color,adr,dst;
     uint16_t max=0,min=3400,scale;
     uint16_t fx,fy,cbufx[2],cbufy[2];
     uint8_t  sx,sy;
-
+    temp_data_sort(mlx90640_To,Temp_dis);
     for (int i = 0; i < 768; i++)
     {
         To16_mlx90640[i] = (uint16_t)(mlx90640_To[i]*10);
 
-            if(To16_mlx90640[i]>max){max = To16_mlx90640[i];}
-            if(To16_mlx90640[i]<min){min = To16_mlx90640[i];}
-
+            if(To16_mlx90640[i]>max){max = To16_mlx90640[i];max_pox=i;}
+            if(To16_mlx90640[i]<min){min = To16_mlx90640[i];min_pox=i;}
     }
+Max = max*0.1;
+Min = min*0.1;
 
-    scale = 2530/(max-min);
+    sprintf(lcdbuf,"max_pox:%d min_pox:%d",max_pox,min_pox);
+    lcd_show_string(0, 130, 16,lcdbuf);
+    sprintf(lcdbuf,"Min:%.1f   vdd:%.2f",min*0.1,vdd);
+    lcd_show_string(0, 220, 16,lcdbuf);
+//
+    sprintf(lcdbuf,"Max:%.1f",max*0.1);
+    lcd_show_string(170, 220, 16,lcdbuf);
+
+    scale = 2550/(max-min);
+
+    for (int i = 0; i < 240; i ++) {
+
+          lcd_fill ( i++,200, i++ +1,200+20, camColors[i]);
+    }
     fy=0;adr=0;
     for(y = 0;y<120;y++)
     {
-        sy = fy>>10;                                       //SrcX中的整数
+        sy = fy>>10;
 
         cbufy[1] = fy&0x3FF;         //v
         cbufy[0] = 1024-cbufy[1];                      //1-v
@@ -151,14 +178,14 @@ void Disp_TempPic(void)
         fx=0;
         for (x = 0; x < 160; x++)
         {
-            sx = fx>>10;                                   //SrcX中的整数
+            sx = fx>>10;
 
             cbufx[1] =fx&0x3FF;     //u
-            cbufx[0] = 1024-cbufx[1];                  //1-u
+            cbufx[0] = 1024-cbufx[1]; //1-u
 
             fx+=scale_x;
-
             color=sy*32+31-sx;
+//            color=sy*32+sx;
             dst =    (  To16_mlx90640[ color    ] * cbufx[0] * cbufy[0] +
                         To16_mlx90640[ color+32 ] * cbufx[0] * cbufy[1] +
                         To16_mlx90640[ color-1  ] * cbufx[1] * cbufy[0] +
@@ -172,7 +199,16 @@ void Disp_TempPic(void)
     }
 }
 
-
+void showx(void)
+{
+    if((((32-(max_pox%32))*5)<150)&&(((32-(max_pox%32))*5)>10)&&((max_pox/32)*5)>10&&((max_pox/32)*5)<110)
+    {
+    lcd_draw_line(((32-(max_pox%32))*5)-10, (max_pox/32)*5,((32-(max_pox%32))*5)+10 , (max_pox/32)*5);
+    lcd_draw_line(((32-(max_pox%32))*5), ((max_pox/32)*5)-10,((32-(max_pox%32))*5) ,( (max_pox/32)*5)+10);
+    sprintf(lcdbuf,"%d",Max);
+    lcd_show_string(((32-(max_pox%32))*5),  ((max_pox/32)*5), 16, lcdbuf);
+    }
+}
 
 
 

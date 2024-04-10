@@ -26,7 +26,7 @@
 #include "Displaytemp.h"
 #include "string.h"
 
-
+ extern  uint16_t  max_pox,min_pox;
 
 unsigned short EE2[832];
 unsigned short Frame[834];
@@ -74,5 +74,6 @@ int main(void)
     {
 	    mlx90640_Getvalue();
 	    Disp_TempPic();
+	    showx();
 	 }
 }

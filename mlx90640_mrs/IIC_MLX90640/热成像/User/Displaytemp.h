@@ -28,6 +28,9 @@ void Disp_TempPic(void);
 
 void setImagePixel(uint8_t x_coord, uint8_t y_coord, float temp);
 uint8_t scaleTemp(float temp, const float scaledMax);
-
+void temp_data_sort(float *frameData,float *result);//ÎÂ¶ÈÊý¾Ý¾µÏñ
 void interpolateBilinear(int newWidth, int newHeight);
+
+
+void showx(void);
 #endif /* USER_DISPLAYTEMP_H_ */

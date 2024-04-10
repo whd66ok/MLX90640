@@ -17,7 +17,7 @@ int I2CReceiveAck(void);
 void Wait(int);
 
 
-static int freqCnt = 5;
+static int freqCnt = 2;
 
 
 void MLX90640_I2CInit(void)
